@@ -4,35 +4,11 @@ import os
 
 # 图片在当前文件夹的位置
 file_in = 'p1'   # 原始图片存放位置
-file_mid = 'p2'   # 更改大小图片存放位置
 file_out = 'p3'   # 最后图片的保存位置
 
 # 棋盘格模板规格，只算内角点个数，不算最外面的一圈点
 w = 9
 h = 6
-
-
-def ResizeImage(filein, fileout, width, height):
-    """
-    改变图片大小，防止图片过大引起崩溃
-    :param filein: 输入图片的文件夹路径
-    :param fileout: 输出图片的文件夹路径
-    :param width: 输出图片宽度
-    :param height: 输出图片宽度
-    :return:
-    """
-    allImages = os.listdir(filein)
-    for fname in allImages:
-        img = cv2.imread('p1\\' + fname)
-        out = cv2.resize(img, (width, height))
-        cv2.imwrite('p2\\' + fname, out)
-
-
-# 更改图片尺寸
-re_w = 512
-re_h = 288
-ResizeImage(file_in, file_mid, re_w, re_h)
-
 
 # 找棋盘格角点
 # 世界坐标系中的棋盘格点，在张正友标定法中认为Z = 0
@@ -42,13 +18,17 @@ objp[:, :2] = np.mgrid[0:w, 0:h].T.reshape(-1, 2)   # :2是因为认为Z=0
 objpoints = []  # 储存在世界坐标系中的三维点
 imgpoints = []  # 储存在图像平面的二维点
 
-images = os.listdir(file_mid)   # 读入图像序列
+images = os.listdir(file_in)   # 读入图像序列
 i = 0
+img_h = 0
+img_w = 0
 
 # 算法迭代的终止条件，第一项表示迭代次数达到最大次数时停止迭代，第二项表示角点位置变化的最小值已经达到最小时停止迭代
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 for fname in images:
-    img = cv2.imread(file_mid + '/' + fname)
+    img = cv2.imread(file_in + '/' + fname)
+    img_h = np.size(img, 0)
+    img_w = np.size(img, 1)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)   # RGB转灰度
     # 找到棋盘格角点，存放角点于corners，如果找到足够点对，将其存储起来，ret为非零值
     ret, corners = cv2.findChessboardCorners(gray, (w, h), None)
@@ -89,11 +69,11 @@ print(("tvecs（平移向量）:\n"), tvecs)
 # 通过设定自由自由比例因子alpha。
 # 当alpha设为0的时候，将会返回一个剪裁过的将去畸变后不想要的像素去掉的内参数和畸变系数；
 # 当alpha设为1的时候，将会返回一系个包含额外黑色像素点的内参数和畸变数，并返回一个ROI用于将其剪裁掉。
-newcameramtx, roi = cv2.getOptimalNewCameraMatrix(mtx, dist, (re_w, re_h), 0, (re_w, re_h))
+newcameramtx, roi = cv2.getOptimalNewCameraMatrix(mtx, dist, (img_w, img_h), 0, (img_w, img_h))
 
 
 # 矫正畸变
-img2 = cv2.imread(file_mid + '/1.jpg')
+img2 = cv2.imread(file_in + '/5.jpg')
 dst = cv2.undistort(img2, mtx, dist, None, newcameramtx)
 cv2.imwrite(file_out + '/calibresult.jpg', dst)
 print("newcameramtx（优化后相机内参）:\n", newcameramtx)
